@@ -1,7 +1,7 @@
 {
-  "appId": "com.nexapp.2048promax",
-  "appName": "2048 Pro Max",
-  "webDir": "www",
+  "appId": "com.jaberfree.promax2048",
+  "appName": "Pro-Max-2048",
+  "webDir": "npx cap add ios",
   "bundledWebRuntime": false,
   "ios": {
     "contentInset": "always"
