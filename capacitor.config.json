@@ -1,0 +1,9 @@
+{
+  "appId": "com.nexapp.2048promax",
+  "appName": "2048 Pro Max",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "always"
+  }
+}

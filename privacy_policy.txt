@@ -1,0 +1,11 @@
+Privacy Policy for 2048 Pro Max
+Last updated: August 2026
+
+1. Data Collection:
+This application does not collect, store, or share any personal user data.
+
+2. Third-Party Services:
+If ads are displayed within the game, they are provided by third-party advertising networks (e.g., AdMob). These networks may use device identifiers to provide relevant ads. Please refer to their respective privacy policies for more information.
+
+3. Contact:
+If you have any questions, please contact us at: [Your Email Address]
