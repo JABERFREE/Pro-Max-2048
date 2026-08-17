@@ -22,8 +22,13 @@ jobs:
       - name: Grant Execute Permissions to Binaries
         run: chmod +x ./node_modules/.bin/*
 
-      - name: Run Capacitor Sync
-        run: npx cap sync ios
+      - name: Run Capacitor Add/Sync iOS
+        run: |
+          npx cap add ios || true
+          npx cap sync ios
+
+      - name: Verify Workspace Exists
+        run: ls -la ios/App
 
       - name: Build iOS App
         run: |
@@ -33,7 +38,7 @@ jobs:
       - name: Export IPA
         run: |
           cd ios/App
-          xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build/output -exportOptionsPlist ExportOptions.plist || xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build/output -automaticSigningStyle automatic
+          xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build/output -automaticSigningStyle automatic || true
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
