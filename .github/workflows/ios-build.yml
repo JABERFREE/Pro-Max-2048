@@ -22,13 +22,17 @@ jobs:
       - name: Grant Execute Permissions to Binaries
         run: chmod +x ./node_modules/.bin/*
 
+      - name: Upgrade Capacitor to Latest Compatible Version
+        run: |
+          npm i @capacitor/core@latest @capacitor/cli@latest @capacitor/ios@latest
+
       - name: Run Capacitor Sync
         run: |
           npx cap add ios || true
           npx cap update ios
           npx cap sync ios
 
-      - name: Fix Package Resolution and Build
+      - name: Find and Build iOS App
         run: |
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
           echo "Found workspace: $WORKSPACE_PATH"
@@ -36,10 +40,12 @@ jobs:
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          # إجبار Xcode على حل التبعيات وتوليد ملف Package.resolved المفقود
+          # حل التبعيات وإلغاء أي ملفات قديمة قد تسبب تعارضاً
+          rm -rf ~/Library/Caches/org.swift.swiftpm
+          rm -rf .swiftpm
+          
           xcodebuild -resolvePackageDependencies -workspace $(basename "$WORKSPACE_PATH") -scheme App -allowProvisioningUpdates
           
-          # تنفيذ عملية الأرشفة والبناء بعد توفر الملف وتوافق الحزم
           xcodebuild -workspace $(basename "$WORKSPACE_PATH") -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates
 
       - name: Export IPA
