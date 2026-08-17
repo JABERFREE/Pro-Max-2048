@@ -22,22 +22,28 @@ jobs:
       - name: Grant Execute Permissions to Binaries
         run: chmod +x ./node_modules/.bin/*
 
-      - name: Run Capacitor Add/Sync iOS
+      - name: Run Capacitor Sync
         run: |
           npx cap add ios || true
           npx cap sync ios
 
-      - name: Verify Workspace Exists
-        run: ls -la ios/App
-
-      - name: Build iOS App
+      - name: Find and Build iOS App
         run: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates
+          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
+          echo "Found workspace: $WORKSPACE_PATH"
+          
+          # استخراج مجلد العمل بناءً على مكان الوجود الفعلي
+          WORK_DIR=$(dirname "$WORKSPACE_PATH")
+          cd "$WORK_DIR"
+          
+          xcodebuild -workspace $(basename "$WORKSPACE_PATH") -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates
 
       - name: Export IPA
         run: |
-          cd ios/App
+          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
+          WORK_DIR=$(dirname "$WORKSPACE_PATH")
+          cd "$WORK_DIR"
+          
           xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build/output -automaticSigningStyle automatic || true
 
       - name: Upload to TestFlight
