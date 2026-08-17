@@ -25,6 +25,7 @@ jobs:
       - name: Run Capacitor Sync
         run: |
           npx cap add ios || true
+          npx cap update ios
           npx cap sync ios
 
       - name: Find and Build iOS App
@@ -32,11 +33,13 @@ jobs:
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
           echo "Found workspace: $WORKSPACE_PATH"
           
-          # استخراج مجلد العمل بناءً على مكان الوجود الفعلي
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          xcodebuild -workspace $(basename "$WORKSPACE_PATH") -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates
+          # حل مشكلة حزم Swift عبر إعادة ضبط التخزين المؤقت وحل التبعيات
+          xcodebuild -resolvePackageDependencies -workspace $(basename "$WORKSPACE_PATH") -scheme App -allowProvisioningUpdates || true
+          
+          xcodebuild -workspace $(basename "$WORKSPACE_PATH") -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates -disableAutomaticPackageResolution
 
       - name: Export IPA
         run: |
