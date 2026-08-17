@@ -22,8 +22,5 @@ jobs:
       - name: Grant Execute Permissions to Binaries
         run: chmod +x ./node_modules/.bin/*
 
-      - name: Add iOS Platform
-        run: npx cap add ios
-
       - name: Run Capacitor Sync
         run: npx cap sync ios
