@@ -25,11 +25,30 @@ jobs:
       - name: Run Capacitor Sync
         run: npx cap sync ios
 
-      # خطوة تثبيت مفاتيح الاعتماد ورفع التطبيق إلى TestFlight
+      - name: Setup Ruby and Bundler
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+
+      # بناء الأرشيف وإنشاء ملف الـ .ipa
+      - name: Build Xcode Archive
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath $PWD/build/App.xcarchive \
+            archive
+          xcodebuild -exportArchive \
+            -archivePath $PWD/build/App.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath $PWD/build/output
+
+      # خطوة الرفع إلى TestFlight بعد التأكد من توفر الملف
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          app-path: 'ios/App/App.ipa'
+          app-path: 'ios/App/build/output/App.ipa'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
