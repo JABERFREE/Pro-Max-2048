@@ -25,26 +25,16 @@ jobs:
       - name: Run Capacitor Sync
         run: npx cap sync ios
 
-      - name: Setup Ruby and Bundler
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.1'
-
-      # بناء الأرشيف وإنشاء ملف الـ .ipa
-      - name: Build Xcode Archive
+      - name: Build iOS App
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath $PWD/build/App.xcarchive \
-            archive
-          xcodebuild -exportArchive \
-            -archivePath $PWD/build/App.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath $PWD/build/output
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates
 
-      # خطوة الرفع إلى TestFlight بعد التأكد من توفر الملف
+      - name: Export IPA
+        run: |
+          cd ios/App
+          xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build/output -exportOptionsPlist ExportOptions.plist || xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build/output -automaticSigningStyle automatic
+
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
