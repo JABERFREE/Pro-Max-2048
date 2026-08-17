@@ -28,7 +28,7 @@ jobs:
           npx cap update ios
           npx cap sync ios
 
-      - name: Find and Build iOS App
+      - name: Fix Package Resolution and Build
         run: |
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
           echo "Found workspace: $WORKSPACE_PATH"
@@ -36,10 +36,11 @@ jobs:
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          # حل مشكلة حزم Swift عبر إعادة ضبط التخزين المؤقت وحل التبعيات
-          xcodebuild -resolvePackageDependencies -workspace $(basename "$WORKSPACE_PATH") -scheme App -allowProvisioningUpdates || true
+          # إجبار Xcode على حل التبعيات وتوليد ملف Package.resolved المفقود
+          xcodebuild -resolvePackageDependencies -workspace $(basename "$WORKSPACE_PATH") -scheme App -allowProvisioningUpdates
           
-          xcodebuild -workspace $(basename "$WORKSPACE_PATH") -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates -disableAutomaticPackageResolution
+          # تنفيذ عملية الأرشفة والبناء بعد توفر الملف وتوافق الحزم
+          xcodebuild -workspace $(basename "$WORKSPACE_PATH") -scheme App -configuration Release archive -archivePath $PWD/build/App.xcarchive -allowProvisioningUpdates
 
       - name: Export IPA
         run: |
