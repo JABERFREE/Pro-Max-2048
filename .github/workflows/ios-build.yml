@@ -19,7 +19,8 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Add iOS Platform
+        run: npx cap add ios
+
       - name: Run Capacitor Sync
         run: npx cap sync ios
-
-      # ملاحظة: يتم هنا لاحقاً إضافة خطوات التوقيع والرفع باستخدام مفاتيح حساب المطورين الخاصة بك (App Store Connect API Key)
