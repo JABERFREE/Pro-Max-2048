@@ -1,0 +1,25 @@
+name: Build and Deploy to App Store
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Capacitor Sync
+        run: npx cap sync ios
+
+      # ملاحظة: يتم هنا لاحقاً إضافة خطوات التوقيع والرفع باستخدام مفاتيح حساب المطورين الخاصة بك (App Store Connect API Key)
