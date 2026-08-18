@@ -1,4 +1,4 @@
-name: Build and Deploy to App Store
+name: Build and Deploy to iOS App Store
 
 on:
   push:
@@ -8,44 +8,41 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Install Dependencies
         run: npm install
 
-      - name: Grant Execute Permissions to Binaries
-        run: chmod +x ./node_modules/.bin/*
-
-      - name: Run Capacitor Sync
+      - name: Sync iOS with Direct Path
         run: |
-          ./node_modules/.bin/cap add ios || true
-          ./node_modules/.bin/cap update ios
-          ./node_modules/.bin/cap sync ios
+          node node_modules/@capacitor/cli/bin/capacitor add ios || true
+          node node_modules/@capacitor/cli/bin/capacitor sync ios
 
       - name: Build iOS App
         run: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          cd ios
+          # استخدام المسار المباشر للـ workspace والتوقيع التلقائي
+          xcodebuild -workspace App/App.xcworkspace \
                      -scheme App \
                      -configuration Release \
                      archive \
-                     -archivePath $PWD/build/App.xcarchive \
+                     -archivePath $PWD/App/build/App.xcarchive \
                      -allowProvisioningUpdates \
                      DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Export IPA
         run: |
-          cd ios/App
+          cd ios
           xcodebuild -exportArchive \
-                     -archivePath $PWD/build/App.xcarchive \
-                     -exportPath $PWD/build/output \
-                     -exportOptionsPlist exportOptions.plist || true
+                     -archivePath App/build/App.xcarchive \
+                     -exportPath App/build/output \
+                     -exportOptionsPlist App/exportOptions.plist || true
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
