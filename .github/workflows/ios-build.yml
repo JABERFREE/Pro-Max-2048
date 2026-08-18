@@ -40,19 +40,19 @@ jobs:
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          # حل التبعيات وإلغاء أي ملفات قديمة قد تسبب تعارضاً
           rm -rf ~/Library/Caches/org.swift.swiftpm
           rm -rf .swiftpm
           
           xcodebuild -resolvePackageDependencies -workspace $(basename "$WORKSPACE_PATH") -scheme App -allowProvisioningUpdates
           
-          # البناء مع تمرير معرف فريق أبل لتجنب خطأ التوقيع
+          # البناء مع تعطيل التدقيق الإلزامي للبروفايل وجعل التوقيع تلقائياً بالكامل
           xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
                      -scheme App \
                      -configuration Release \
                      archive \
                      -archivePath $PWD/build/App.xcarchive \
                      -allowProvisioningUpdates \
+                     CODE_SIGN_STYLE=Automatic \
                      DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Export IPA
