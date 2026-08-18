@@ -25,16 +25,22 @@ jobs:
       - name: Run Capacitor Sync
         run: npx cap sync ios
 
-      - name: Clean Swift Package Cache and Fix Versions
+      - name: Fix Capacitor Swift PM Version Lock (Crucial)
         run: |
           cd ios/App
-          # تنظيف أي قفل قديم للتبعيات يسبب مشكلة الإصدار 5.7.8
+          # البحث عن ملف Package.swift الخاص بـ CapApp-SPM وتعديل شرط الإصدار ليقبل الإصدارات الحديثة
+          PKG_FILE=$(find . -name "Package.swift" -print -quit)
+          if [ -f "$PKG_FILE" ]; then
+            echo "Found Package.swift, fixing version requirements..."
+            # استبدال الإصدار المقيد بإصدار مرن ومتوافق
+            sed -i '' 's/\.exact("5.7.8")/.upToNextMajorFrom("5.0.0")/g' "$PKG_FILE" || true
+            sed -i '' 's/5.7.8/5.8.0/g' "$PKG_FILE" || true
+          fi
+          
+          # مسح الكاش وقفل التبعيات القديم
           rm -rf App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
           rm -rf ~/Library/Caches/org.swift.swiftpm
           rm -rf ~/Library/Developer/Xcode/DerivedData
-          
-          # إزالة القيود الصارمة لإصدارات التبعيات من ملف المشروع الداخلي
-          find . -name "project.pbxproj" -exec sed -i '' '/dependencyRule/d' {} + || true
 
       - name: Force Automatic Signing in Project
         run: |
