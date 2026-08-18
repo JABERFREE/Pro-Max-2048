@@ -19,52 +19,36 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Grant Execute Permissions to Binaries
-        run: chmod +x ./node_modules/.bin/*
-
-      - name: Upgrade Capacitor to Latest Compatible Version
-        run: |
-          npm i @capacitor/core@latest @capacitor/cli@latest @capacitor/ios@latest
-
       - name: Run Capacitor Sync
         run: |
           npx cap add ios || true
-          npx cap update ios
           npx cap sync ios
 
-      - name: Find and Build iOS App
+      - name: Build iOS App
         run: |
-          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
-          echo "Found workspace: $WORKSPACE_PATH"
+          # الانتقال لمجلد ios
+          cd ios/App
           
-          WORK_DIR=$(dirname "$WORKSPACE_PATH")
-          cd "$WORK_DIR"
-          
-          rm -rf ~/Library/Caches/org.swift.swiftpm
-          rm -rf .swiftpm
-          
-          xcodebuild -resolvePackageDependencies -workspace $(basename "$WORKSPACE_PATH") -scheme App -allowProvisioningUpdates
-          
-          # البناء مع تعطيل التدقيق الإلزامي للبروفايل وجعل التوقيع تلقائياً بالكامل
-          xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
+          # بناء التطبيق مع توجيه Xcode لاستخدام التوقيع التلقائي المرتبط بحسابك
+          # هذه الخطوة تستخدم معلومات الـ Team ID الذي أضفناه سابقاً
+          xcodebuild -workspace App.xcworkspace \
                      -scheme App \
                      -configuration Release \
                      archive \
                      -archivePath $PWD/build/App.xcarchive \
                      -allowProvisioningUpdates \
-                     CODE_SIGN_STYLE=Automatic \
+                     -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+                     -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+                     -authenticationKeyPath "" \
                      DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Export IPA
         run: |
-          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
-          WORK_DIR=$(dirname "$WORKSPACE_PATH")
-          cd "$WORK_DIR"
-          
+          cd ios/App
           xcodebuild -exportArchive \
                      -archivePath $PWD/build/App.xcarchive \
                      -exportPath $PWD/build/output \
-                     -automaticSigningStyle automatic || true
+                     -exportOptionsPlist exportOptions.plist || true
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
