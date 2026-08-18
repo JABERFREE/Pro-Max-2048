@@ -2,7 +2,7 @@ name: Build and Deploy to iOS App Store
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main ]
 
 jobs:
   build:
@@ -19,27 +19,63 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Sync iOS
-        run: |
-          node node_modules/@capacitor/cli/bin/capacitor add ios || true
-          node node_modules/@capacitor/cli/bin/capacitor sync ios
+      - name: Grant Execute Permissions to Binaries
+        run: chmod +x ./node_modules/.bin/* || true
 
-      - name: Build iOS App
+      - name: Run Capacitor Sync
+        run: npx cap sync ios
+
+      - name: Force Automatic Signing in Project
+        run: |
+          PROJECT_FILE=$(find . -name "*.pbxproj" -print -quit)
+          if [ -f "$PROJECT_FILE" ]; then
+            sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' "$PROJECT_FILE" || true
+            sed -i '' 's/DevelopmentTeam = "[^"]*";/DevelopmentTeam = "LH6K854ZP6";/g' "$PROJECT_FILE" || true
+          fi
+
+      - name: Build and Archive
         run: |
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          # مسح ملف التبعيات القديم
-          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved || true
           
-          # البناء بدون إجبار التوقيع لتجاوز خطأ الحسابات
           xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
                      -scheme App \
                      -configuration Release \
                      archive \
                      -archivePath $PWD/build/App.xcarchive \
-                     CODE_SIGNING_ALLOWED=NO
+                     -allowProvisioningUpdates \
+                     -allowProvisioningDeviceRegistration \
+                     DEVELOPMENT_TEAM="LH6K854ZP6" \
+                     CODE_SIGN_STYLE=Automatic
+
+      - name: Create exportOptions.plist Automatically
+        run: |
+          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
+          WORK_DIR=$(dirname "$WORKSPACE_PATH")
+          cd "$WORK_DIR"
+          
+          # إنشاء الملف برمجيًا في نفس المجلد لضمان عدم فقدانه
+          cat <<EOF > exportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>LH6K854ZP6</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
 
       - name: Export IPA
         run: |
@@ -47,11 +83,10 @@ jobs:
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          # تصدير التطبيق
           xcodebuild -exportArchive \
                      -archivePath $PWD/build/App.xcarchive \
                      -exportPath $PWD/build/output \
-                     -exportOptionsPlist exportOptions.plist || true
+                     -exportOptionsPlist exportOptions.plist
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
