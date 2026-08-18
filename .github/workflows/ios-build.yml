@@ -19,44 +19,42 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Grant Execute Permissions to Binaries
-        run: chmod +x ./node_modules/.bin/* || true
-
       - name: Run Capacitor Sync
         run: npx cap sync ios
 
-      - name: Fix Capacitor Swift PM Version Lock (Crucial)
+      - name: Nuke Package Dependencies (The Solution)
         run: |
           cd ios/App
-          # البحث عن ملف Package.swift الخاص بـ CapApp-SPM وتعديل شرط الإصدار ليقبل الإصدارات الحديثة
-          PKG_FILE=$(find . -name "Package.swift" -print -quit)
-          if [ -f "$PKG_FILE" ]; then
-            echo "Found Package.swift, fixing version requirements..."
-            # استبدال الإصدار المقيد بإصدار مرن ومتوافق
-            sed -i '' 's/\.exact("5.7.8")/.upToNextMajorFrom("5.0.0")/g' "$PKG_FILE" || true
-            sed -i '' 's/5.7.8/5.8.0/g' "$PKG_FILE" || true
-          fi
+          # 1. حذف جميع ملفات القفل التي تفرض إصدارات قديمة
+          find . -name "Package.resolved" -type f -delete
           
-          # مسح الكاش وقفل التبعيات القديم
-          rm -rf App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-          rm -rf ~/Library/Caches/org.swift.swiftpm
-          rm -rf ~/Library/Developer/Xcode/DerivedData
+          # 2. حذف كاش الـ Swift Package Manager في بيئة Runner
+          rm -rf ~/Library/Caches/org.swift.swiftpm/
+          
+          # 3. حذف مجلد التبعيات المحلي في المشروع إن وجد
+          rm -rf .swiftpm/
+          
+          # 4. إعادة بناء الـ Workspace بدون الاعتماد على القفل القديم
+          # هذا سيجبر Xcode على جلب التبعيات المتاحة في الريموت حسب تعريفاتها الحالية
+          echo "Dependencies cleared."
 
-      - name: Force Automatic Signing in Project
+      - name: Force Automatic Signing
         run: |
           PROJECT_FILE=$(find . -name "*.pbxproj" -print -quit)
           if [ -f "$PROJECT_FILE" ]; then
-            sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' "$PROJECT_FILE" || true
-            sed -i '' 's/DevelopmentTeam = "[^"]*";/DevelopmentTeam = "LH6K854ZP6";/g' "$PROJECT_FILE" || true
+            sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' "$PROJECT_FILE"
+            sed -i '' 's/DevelopmentTeam = "[^"]*";/DevelopmentTeam = "LH6K854ZP6";/g' "$PROJECT_FILE"
           fi
 
       - name: Build and Archive
         run: |
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
-          WORK_DIR=$(dirname "$WORKSPACE_PATH")
-          cd "$WORK_DIR"
+          # نستخدم -resolvePackageDependencies لإجبار Xcode على إعادة البحث
+          xcodebuild -resolvePackageDependencies \
+                     -workspace "$(basename "$WORKSPACE_PATH")" \
+                     -scheme App
           
-          xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
+          xcodebuild -workspace "$(basename "$WORKSPACE_PATH")" \
                      -scheme App \
                      -configuration Release \
                      archive \
@@ -66,12 +64,8 @@ jobs:
                      DEVELOPMENT_TEAM="LH6K854ZP6" \
                      CODE_SIGN_STYLE=Automatic
 
-      - name: Create exportOptions.plist Automatically
+      - name: Create exportOptions.plist
         run: |
-          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
-          WORK_DIR=$(dirname "$WORKSPACE_PATH")
-          cd "$WORK_DIR"
-          
           cat <<EOF > exportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -94,9 +88,6 @@ jobs:
       - name: Export IPA
         run: |
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
-          WORK_DIR=$(dirname "$WORKSPACE_PATH")
-          cd "$WORK_DIR"
-          
           xcodebuild -exportArchive \
                      -archivePath $PWD/build/App.xcarchive \
                      -exportPath $PWD/build/output \
