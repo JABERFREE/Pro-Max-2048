@@ -19,27 +19,24 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Grant Execute Permissions to Binaries
+        run: chmod +x ./node_modules/.bin/*
+
       - name: Run Capacitor Sync
         run: |
-          npx cap add ios || true
-          npx cap sync ios
+          ./node_modules/.bin/cap add ios || true
+          ./node_modules/.bin/cap update ios
+          ./node_modules/.bin/cap sync ios
 
       - name: Build iOS App
         run: |
-          # الانتقال لمجلد ios
           cd ios/App
-          
-          # بناء التطبيق مع توجيه Xcode لاستخدام التوقيع التلقائي المرتبط بحسابك
-          # هذه الخطوة تستخدم معلومات الـ Team ID الذي أضفناه سابقاً
           xcodebuild -workspace App.xcworkspace \
                      -scheme App \
                      -configuration Release \
                      archive \
                      -archivePath $PWD/build/App.xcarchive \
                      -allowProvisioningUpdates \
-                     -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-                     -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
-                     -authenticationKeyPath "" \
                      DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Export IPA
