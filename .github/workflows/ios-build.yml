@@ -19,24 +19,17 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Run Capacitor Sync
-        run: npx cap sync ios
+      - name: Grant Permissions and Sync iOS
+        run: |
+          chmod +x node_modules/.bin/cap || true
+          node node_modules/@capacitor/cli/bin/capacitor sync ios
 
-      - name: Nuke Package Dependencies (The Solution)
+      - name: Nuke Package Dependencies
         run: |
           cd ios/App
-          # 1. حذف جميع ملفات القفل التي تفرض إصدارات قديمة
           find . -name "Package.resolved" -type f -delete
-          
-          # 2. حذف كاش الـ Swift Package Manager في بيئة Runner
           rm -rf ~/Library/Caches/org.swift.swiftpm/
-          
-          # 3. حذف مجلد التبعيات المحلي في المشروع إن وجد
           rm -rf .swiftpm/
-          
-          # 4. إعادة بناء الـ Workspace بدون الاعتماد على القفل القديم
-          # هذا سيجبر Xcode على جلب التبعيات المتاحة في الريموت حسب تعريفاتها الحالية
-          echo "Dependencies cleared."
 
       - name: Force Automatic Signing
         run: |
@@ -49,7 +42,7 @@ jobs:
       - name: Build and Archive
         run: |
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
-          # نستخدم -resolvePackageDependencies لإجبار Xcode على إعادة البحث
+          
           xcodebuild -resolvePackageDependencies \
                      -workspace "$(basename "$WORKSPACE_PATH")" \
                      -scheme App
