@@ -25,6 +25,17 @@ jobs:
       - name: Run Capacitor Sync
         run: npx cap sync ios
 
+      - name: Clean Swift Package Cache and Fix Versions
+        run: |
+          cd ios/App
+          # تنظيف أي قفل قديم للتبعيات يسبب مشكلة الإصدار 5.7.8
+          rm -rf App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          rm -rf ~/Library/Caches/org.swift.swiftpm
+          rm -rf ~/Library/Developer/Xcode/DerivedData
+          
+          # إزالة القيود الصارمة لإصدارات التبعيات من ملف المشروع الداخلي
+          find . -name "project.pbxproj" -exec sed -i '' '/dependencyRule/d' {} + || true
+
       - name: Force Automatic Signing in Project
         run: |
           PROJECT_FILE=$(find . -name "*.pbxproj" -print -quit)
@@ -38,8 +49,6 @@ jobs:
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
-          
-          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved || true
           
           xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
                      -scheme App \
@@ -57,7 +66,6 @@ jobs:
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          # إنشاء الملف برمجيًا في نفس المجلد لضمان عدم فقدانه
           cat <<EOF > exportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
