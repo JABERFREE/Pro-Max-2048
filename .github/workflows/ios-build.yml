@@ -19,39 +19,27 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Force Update Capacitor Packages
-        run: |
-          npm i @capacitor/core@latest @capacitor/cli@latest @capacitor/ios@latest --save-exact
-
       - name: Sync iOS
         run: |
           node node_modules/@capacitor/cli/bin/capacitor add ios || true
           node node_modules/@capacitor/cli/bin/capacitor sync ios
 
-      - name: Set Automatic Signing in Project
-        run: |
-          cd ios/App
-          # تعديل إعدادات التوقيع داخل ملف المشروع ليستخدم التوقيع التلقائي ومعرف فريقك مباشرة
-          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' App.xcodeproj/project.pbxproj || true
-          sed -i '' 's/DevelopmentTeam = "";/DevelopmentTeam = "LH6K854ZP6";/g' App.xcodeproj/project.pbxproj || true
-
-      - name: Build and Archive
+      - name: Build iOS App
         run: |
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
+          # مسح ملف التبعيات القديم
           rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
           
+          # البناء بدون إجبار التوقيع لتجاوز خطأ الحسابات
           xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
                      -scheme App \
                      -configuration Release \
                      archive \
                      -archivePath $PWD/build/App.xcarchive \
-                     -allowProvisioningUpdates \
-                     -allowProvisioningDeviceRegistration \
-                     DEVELOPMENT_TEAM="LH6K854ZP6" \
-                     CODE_SIGN_STYLE=Automatic
+                     CODE_SIGNING_ALLOWED=NO
 
       - name: Export IPA
         run: |
@@ -59,6 +47,7 @@ jobs:
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
+          # تصدير التطبيق
           xcodebuild -exportArchive \
                      -archivePath $PWD/build/App.xcarchive \
                      -exportPath $PWD/build/output \
