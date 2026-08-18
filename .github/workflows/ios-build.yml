@@ -26,23 +26,32 @@ jobs:
 
       - name: Build iOS App
         run: |
-          cd ios
-          # استخدام المسار المباشر للـ workspace والتوقيع التلقائي
-          xcodebuild -workspace App/App.xcworkspace \
+          # العثور على مسار الـ workspace تلقائياً بغض النظر عن مكانه الفرعي
+          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
+          echo "Found workspace: $WORKSPACE_PATH"
+          
+          WORK_DIR=$(dirname "$WORKSPACE_PATH")
+          cd "$WORK_DIR"
+          
+          # البناء باستخدام المسار المكتشف ديناميكياً
+          xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
                      -scheme App \
                      -configuration Release \
                      archive \
-                     -archivePath $PWD/App/build/App.xcarchive \
+                     -archivePath $PWD/build/App.xcarchive \
                      -allowProvisioningUpdates \
                      DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Export IPA
         run: |
-          cd ios
+          WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
+          WORK_DIR=$(dirname "$WORKSPACE_PATH")
+          cd "$WORK_DIR"
+          
           xcodebuild -exportArchive \
-                     -archivePath App/build/App.xcarchive \
-                     -exportPath App/build/output \
-                     -exportOptionsPlist App/exportOptions.plist || true
+                     -archivePath $PWD/build/App.xcarchive \
+                     -exportPath $PWD/build/output \
+                     -exportOptionsPlist exportOptions.plist || true
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
