@@ -24,16 +24,19 @@ jobs:
           node node_modules/@capacitor/cli/bin/capacitor add ios || true
           node node_modules/@capacitor/cli/bin/capacitor sync ios
 
-      - name: Build iOS App
+      - name: Build iOS App and Resolve Dependencies
         run: |
-          # العثور على مسار الـ workspace تلقائياً بغض النظر عن مكانه الفرعي
           WORKSPACE_PATH=$(find . -name "*.xcworkspace" -print -quit)
-          echo "Found workspace: $WORKSPACE_PATH"
-          
           WORK_DIR=$(dirname "$WORKSPACE_PATH")
           cd "$WORK_DIR"
           
-          # البناء باستخدام المسار المكتشف ديناميكياً
+          # الخطوة الحاسمة: حذف ملف التبعيات القديم لإجبار Xcode على استخدام أحدث إصدار متوافق
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          
+          # حل التبعيات مع السماح لـ Xcode بتحديث الإصدار تلقائياً
+          xcodebuild -resolvePackageDependencies -workspace $(basename "$WORKSPACE_PATH") -scheme App -allowProvisioningUpdates
+          
+          # البناء
           xcodebuild -workspace $(basename "$WORKSPACE_PATH") \
                      -scheme App \
                      -configuration Release \
